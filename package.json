@@ -1,0 +1,13 @@
+{
+  "name": "playWithCompiler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "aseven <1004324370@qq.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^13.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.5"
+  }
+}
