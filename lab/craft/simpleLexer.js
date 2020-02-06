@@ -17,37 +17,6 @@ var SimpleToken = /** @class */ (function () {
 var tokens = []; // 保存解析出来的token
 var tokenText = []; // 临时保存token的文本
 var token = new SimpleToken(); // 当前正在解析的token
-var SimpleTokenReader = /** @class */ (function () {
-    function SimpleTokenReader(tokens) {
-        this.tokens = null;
-        this.pos = 0;
-        this.tokens = tokens;
-    }
-    SimpleTokenReader.prototype.read = function () {
-        if (this.pos < tokens.length) {
-            return tokens[this.pos++];
-        }
-        return null;
-    };
-    SimpleTokenReader.prototype.peek = function () {
-        if (this.pos < tokens.length) {
-            return tokens[this.pos];
-        }
-        return null;
-    };
-    SimpleTokenReader.prototype.unread = function () {
-        if (this.pos > 0) {
-            this.pos--;
-        }
-    };
-    SimpleTokenReader.prototype.getPosition = function () {
-        return this.pos;
-    };
-    SimpleTokenReader.prototype.setPosition = function (position) {
-        this.pos = position;
-    };
-    return SimpleTokenReader;
-}());
 ;
 function testCases() {
     // let script: string = 'int age = 24;';
@@ -68,7 +37,7 @@ function tokenSize(code) {
     var state = 0 /* Initial */;
     while (ich < code.length) {
         ch = code[ich++];
-        console.log('********', ch, state);
+        // console.log('********', ch, state);
         switch (state) {
             case 0 /* Initial */:
                 state = initToken(ch);
@@ -153,8 +122,19 @@ function tokenSize(code) {
     if (tokenText.length > 0) {
         initToken(ch);
     }
-    return new SimpleTokenReader(tokens);
+    var tokenReader = new SimpleTokenReader(tokens);
+    print(tokenReader);
+    tokenReader.setPosition(0);
+    console.log('=========================>');
+    return tokenReader;
 }
+exports.tokenSize = tokenSize;
+/**
+ * 有限状态机进入初始状态。
+ * 这个初始状态其实并不做停留，它马上进入其他状态。
+ * 开始解析的时候，进入初始状态；某个Token解析完毕，也进入初始状态，在这里把Token记下来，然后建立一个新的Token。
+ * @param ch
+ */
 function initToken(ch) {
     if (tokenText.length > 0) {
         token.text = tokenText.join('');
@@ -213,6 +193,37 @@ function initToken(ch) {
     }
     return newState;
 }
+var SimpleTokenReader = /** @class */ (function () {
+    function SimpleTokenReader(tokens) {
+        this.tokens = null;
+        this.pos = 0;
+        this.tokens = tokens;
+    }
+    SimpleTokenReader.prototype.read = function () {
+        if (this.pos < tokens.length) {
+            return tokens[this.pos++];
+        }
+        return null;
+    };
+    SimpleTokenReader.prototype.peek = function () {
+        if (this.pos < tokens.length) {
+            return tokens[this.pos];
+        }
+        return null;
+    };
+    SimpleTokenReader.prototype.unread = function () {
+        if (this.pos > 0) {
+            this.pos--;
+        }
+    };
+    SimpleTokenReader.prototype.getPosition = function () {
+        return this.pos;
+    };
+    SimpleTokenReader.prototype.setPosition = function (position) {
+        this.pos = position;
+    };
+    return SimpleTokenReader;
+}());
 function isAlpha(ch) {
     return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
 }
@@ -225,7 +236,7 @@ function isBlank(ch) {
 function print(tokenReader) {
     var tempToken = null;
     while ((tempToken = tokenReader.read()) !== null) {
-        console.log(tempToken.getText() + '\t\t' + tempToken.getType());
+        console.log(tempToken.getText() + '\t\t' + tokenType_1.TokenType[tempToken.getType() || 0]);
     }
 }
-testCases();
+// testCases();

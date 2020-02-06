@@ -19,44 +19,6 @@ const tokens: SimpleToken[] = []; // 保存解析出来的token
 let tokenText: string[] = []; // 临时保存token的文本
 let token: SimpleToken = new SimpleToken();  // 当前正在解析的token
 
-class SimpleTokenReader implements TokenReader {
-  public tokens: Token[] | null = null;
-  public pos: number = 0;
-
-  constructor(tokens: Token[]) {
-    this.tokens = tokens;
-  }
-
-  read(): Token | null {
-    if (this.pos < tokens.length) {
-      return tokens[this.pos++];
-    }
-    return null;
-  }
-
-  peek(): Token | null {
-    if (this.pos < tokens.length) {
-      return tokens[this.pos];
-    }
-    return null;
-  }
-
-  unread(): void {
-    if (this.pos > 0) {
-      this.pos--;
-    }
-  }
-
-  getPosition(): number {
-    return this.pos;
-  }
-
-  setPosition(position: number): void {
-    this.pos = position;
-  }
-}
-
-
 const enum DfaState {
   Initial,
   If, Id_if1, Id_if2, Else, Id_else1, Id_else2, Id_else3, Id_else4, 
@@ -86,7 +48,7 @@ function testCases() {
  * 这是一个有限自动机，在不同的状态之间迁移
  * @param code 
  */
-function tokenSize(code: string): SimpleTokenReader {
+export function tokenSize(code: string): SimpleTokenReader {
   let ich: number = 0;
   let ch: string = '';
   
@@ -171,7 +133,11 @@ function tokenSize(code: string): SimpleTokenReader {
   if (tokenText.length > 0) {
     initToken(ch);
   }
-  return new SimpleTokenReader(tokens);
+  const tokenReader = new SimpleTokenReader(tokens);
+  print(tokenReader);
+  tokenReader.setPosition(0);
+  console.log('=========================>')
+  return tokenReader;
 }
 
 /**
@@ -232,6 +198,43 @@ function initToken(ch: string): DfaState {
   return newState;
 }
 
+class SimpleTokenReader implements TokenReader {
+  public tokens: Token[] | null = null;
+  public pos: number = 0;
+
+  constructor(tokens: Token[]) {
+    this.tokens = tokens;
+  }
+
+  read(): Token | null {
+    if (this.pos < tokens.length) {
+      return tokens[this.pos++];
+    }
+    return null;
+  }
+
+  peek(): Token | null {
+    if (this.pos < tokens.length) {
+      return tokens[this.pos];
+    }
+    return null;
+  }
+
+  unread(): void {
+    if (this.pos > 0) {
+      this.pos--;
+    }
+  }
+
+  getPosition(): number {
+    return this.pos;
+  }
+
+  setPosition(position: number): void {
+    this.pos = position;
+  }
+}
+
 function isAlpha(ch: string): boolean {
   return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
 }
@@ -247,8 +250,8 @@ function isBlank(ch: string): boolean {
 function print(tokenReader: SimpleTokenReader): void {
   let tempToken: Token | null = null;
   while((tempToken = tokenReader.read()) !== null) {
-    console.log(tempToken.getText() + '\t\t' + tempToken.getType());
+    console.log(tempToken.getText() + '\t\t' + TokenType[tempToken.getType() || 0]);
   }
 }
 
-testCases();
+// testCases();
