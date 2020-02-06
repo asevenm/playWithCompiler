@@ -1,5 +1,5 @@
 /**
- * 实现一个计算器，但计算的结合性是有问题的。因为它使用了下面的语法规则：
+ * 实现一个计算器，但计算的结合性是有问题的。因为它使用了下面的语法规则：(上下文无关文法)
  *
  * additive -> multiplicative | multiplicative + additive
  * multiplicative -> primary | primary * multiplicative  
@@ -267,4 +267,5 @@ function printAst(node: ASTNode, ident: string) {
   }
 }
 
-evaluateAll('2 + 3 * 5');
+// evaluateAll('2 + 3 * 5');
+evaluateAll('2 + 3 + 5');

@@ -56,7 +56,6 @@ export function tokenSize(code: string): SimpleTokenReader {
 
   while(ich < code.length) {
     ch = code[ich++];
-    // console.log('********', ch, state);
     switch (state) {
       case DfaState.Initial: 
         state = initToken(ch);
@@ -190,6 +189,18 @@ function initToken(ch: string): DfaState {
   } else if (ch === '=') {
     newState = DfaState.Assignment;
     token.type = TokenType.Assignment;
+    tokenText.push(ch);
+  } else if (ch === ';') {
+    newState = DfaState.SemiColon;
+    token.type = TokenType.SemiColon;
+    tokenText.push(ch);
+  } else if (ch === ')') {
+    newState = DfaState.RightParen;
+    token.type = TokenType.RightParen;
+    tokenText.push(ch);
+  } else if (ch === '(') {
+    newState = DfaState.LeftParen;
+    token.type = TokenType.LeftParen;
     tokenText.push(ch);
   } else {
     newState = DfaState.Initial;

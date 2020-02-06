@@ -37,7 +37,6 @@ function tokenSize(code) {
     var state = 0 /* Initial */;
     while (ich < code.length) {
         ch = code[ich++];
-        // console.log('********', ch, state);
         switch (state) {
             case 0 /* Initial */:
                 state = initToken(ch);
@@ -186,6 +185,21 @@ function initToken(ch) {
     else if (ch === '=') {
         newState = 16 /* Assignment */;
         token.type = tokenType_1.TokenType.Assignment;
+        tokenText.push(ch);
+    }
+    else if (ch === ';') {
+        newState = 21 /* SemiColon */;
+        token.type = tokenType_1.TokenType.SemiColon;
+        tokenText.push(ch);
+    }
+    else if (ch === ')') {
+        newState = 23 /* RightParen */;
+        token.type = tokenType_1.TokenType.RightParen;
+        tokenText.push(ch);
+    }
+    else if (ch === '(') {
+        newState = 22 /* LeftParen */;
+        token.type = tokenType_1.TokenType.LeftParen;
         tokenText.push(ch);
     }
     else {

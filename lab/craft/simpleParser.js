@@ -1,11 +1,15 @@
 "use strict";
 /**
- * 实现一个计算器，但计算的结合性是有问题的。因为它使用了下面的语法规则：(上下文无关文法)
- *
- * additive -> multiplicative | multiplicative + additive
- * multiplicative -> primary | primary * multiplicative
- *
- * 递归项在右边，会自然的对应右结合。我们真正需要的是左结合。
+ * 一个简单的语法解析器。
+ * 能够解析简单的表达式、变量声明和初始化语句、赋值语句。
+ * 它支持的语法规则为：
+ * (扩展巴科斯范式（EBNF))
+ * programm -> intDeclare | expressionStatement | assignmentStatement
+ * intDeclare -> 'int' Id ( = additive) ';'
+ * expressionStatement -> addtive ';'
+ * addtive -> multiplicative ( (+ | -) multiplicative)*
+ * multiplicative -> primary ( (* | /) primary)*
+ * primary -> IntLiteral | Id | (additive)
  */
 var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
@@ -29,6 +33,7 @@ var simpleLexer_1 = require("./simpleLexer");
 function evaluateAll(code) {
     try {
         var tree = parse(code);
+        console.log(tree);
         printAst(tree, '');
         evaluate(tree, '');
     }
@@ -94,6 +99,9 @@ function evaluate(node, ident) {
                 result = value3 / value4;
             }
             break;
+        case astNodeType_1.ASTNodeType.IntDeclaration:
+            result = evaluate(node.getChildren()[0], ident + '\t');
+            break;
         case astNodeType_1.ASTNodeType.IntLiteral:
             result = Number(node.getText());
             break;
@@ -108,10 +116,21 @@ function evaluate(node, ident) {
  * @param tokens
  */
 function prog(tokens) {
-    var node = new SimpleASTNode(astNodeType_1.ASTNodeType.Programm, 'Calculator');
-    var child = additive(tokens);
-    if (child !== null) {
-        node.addChild(child);
+    var node = new SimpleASTNode(astNodeType_1.ASTNodeType.Programm, 'pwc');
+    while (tokens.peek() !== null) {
+        var child = IntDeclare(tokens);
+        if (child === null) {
+            child = expressionStatement(tokens);
+        }
+        if (child === null) {
+            child = assignmentStatement(tokens);
+        }
+        if (child !== null) {
+            node.addChild(child);
+        }
+        else {
+            throw new Error("unknown statement");
+        }
     }
     return node;
 }
@@ -125,7 +144,7 @@ function IntDeclare(tokens) {
     var token = tokens.peek();
     if (token !== null && token.getType() === tokenType_1.TokenType.Int) {
         tokens.read();
-        token = tokens.read();
+        token = tokens.peek();
         if (((_a = token) === null || _a === void 0 ? void 0 : _a.getType()) === tokenType_1.TokenType.Identifier) {
             tokens.read();
             node = new SimpleASTNode(astNodeType_1.ASTNodeType.IntDeclaration, token.getText() || '');
@@ -135,6 +154,9 @@ function IntDeclare(tokens) {
                 var child = additive(tokens);
                 if (child === null) {
                     throw new Error("invalide variable initialization, expecting an expression");
+                }
+                else {
+                    node.children.push(child);
                 }
             }
         }
@@ -154,26 +176,90 @@ function IntDeclare(tokens) {
     return node;
 }
 /**
+ * 表达式语句（表达式后面跟分号；）
+ * expressionStatement -> additive ';'
+ * @param tokens
+ */
+function expressionStatement(tokens) {
+    var _a;
+    var pos = tokens.getPosition();
+    var node = additive(tokens);
+    if (node !== null) {
+        var token = tokens.peek();
+        if (((_a = token) === null || _a === void 0 ? void 0 : _a.getType()) === tokenType_1.TokenType.SemiColon) {
+            tokens.read();
+        }
+        else {
+            node = null;
+            tokens.setPosition(pos);
+        }
+    }
+    return node;
+}
+/**
+ * 赋值语句
+ * assignmentStatement -> Id '=' additive
+ * @param tokens
+ */
+function assignmentStatement(tokens) {
+    var _a, _b, _c, _d;
+    var node = null;
+    var token = tokens.peek();
+    if (((_a = token) === null || _a === void 0 ? void 0 : _a.getType()) === tokenType_1.TokenType.Identifier) {
+        tokens.read();
+        node = new SimpleASTNode(astNodeType_1.ASTNodeType.AssignmentStmt, ((_b = token) === null || _b === void 0 ? void 0 : _b.getText()) || '');
+        token = tokens.peek();
+        if (((_c = token) === null || _c === void 0 ? void 0 : _c.getType()) === tokenType_1.TokenType.Assignment) {
+            tokens.read();
+            var child = additive(tokens);
+            if (child !== null) {
+                node.children.push(child);
+                token = tokens.peek();
+                if (((_d = token) === null || _d === void 0 ? void 0 : _d.getType()) === tokenType_1.TokenType.SemiColon) {
+                    tokens.read();
+                }
+                else {
+                    throw new Error("invalid statement, expecting semicolon");
+                }
+            }
+            else {
+                throw new Error("invalide assignment statement, expecting an expression");
+            }
+        }
+        else {
+            tokens.unread();
+            node = null;
+        }
+    }
+    return node;
+}
+/**
  * 语法解析，加法表达式
- * additiveExpression -> multiplicativeExpression | multiplicativeExpress + additiveExpression
+ * addtive -> multiplicative ( (+ | -) multiplicative)*
  * @param tokens
  */
 function additive(tokens) {
-    var _a;
+    var _a, _b;
     var child1 = multiplicative(tokens);
     var node = child1;
-    var token = tokens.peek();
-    if (token !== null && child1 !== null) {
-        if (token.getType() === tokenType_1.TokenType.Plus || token.getType() === tokenType_1.TokenType.Minus) {
-            token = tokens.read();
-            var child2 = additive(tokens);
-            if (child2 !== null) {
-                node = new SimpleASTNode(astNodeType_1.ASTNodeType.Additive, ((_a = token) === null || _a === void 0 ? void 0 : _a.getText()) || '+');
-                node.children.push(child1);
-                node.children.push(child2);
+    if (child1 !== null) {
+        while (true) {
+            var token = tokens.peek();
+            if (((_a = token) === null || _a === void 0 ? void 0 : _a.getType()) === tokenType_1.TokenType.Plus || ((_b = token) === null || _b === void 0 ? void 0 : _b.getType()) === tokenType_1.TokenType.Minus) {
+                tokens.read();
+                var child2 = multiplicative(tokens);
+                if (child2 !== null) {
+                    node = new SimpleASTNode(astNodeType_1.ASTNodeType.Additive, token.getText() || '+');
+                    node.children.push(child1);
+                    node.children.push(child2);
+                    child1 = node;
+                }
+                else {
+                    throw new Error('invalid additive expression, expecting the right part.');
+                }
             }
             else {
-                throw new Error('invalid additive expression, expecting the right part.');
+                break;
             }
         }
     }
@@ -181,25 +267,31 @@ function additive(tokens) {
 }
 /**
  * 语法解析，乘法表达式
- * multipticativeExpression -> primary | multipticativeExpression * primary
+ * multiplicative -> primary ( (* | /) primary)*
  * @param tokens
  */
 function multiplicative(tokens) {
-    var _a;
+    var _a, _b;
     var child1 = primary(tokens);
     var node = child1;
-    var token = tokens.peek();
-    if (token !== null && child1 !== null) {
-        if (token.getType() === tokenType_1.TokenType.Star || token.getType() === tokenType_1.TokenType.Slash) {
-            token = tokens.read();
-            var child2 = multiplicative(tokens);
-            if (child2 !== null) {
-                node = new SimpleASTNode(astNodeType_1.ASTNodeType.Multiplicative, ((_a = token) === null || _a === void 0 ? void 0 : _a.getText()) || '*');
-                node.children.push(child1);
-                node.children.push(child2);
+    if (child1 !== null) {
+        while (true) {
+            var token = tokens.peek();
+            if (((_a = token) === null || _a === void 0 ? void 0 : _a.getType()) === tokenType_1.TokenType.Star || ((_b = token) === null || _b === void 0 ? void 0 : _b.getType()) === tokenType_1.TokenType.Slash) {
+                tokens.read();
+                node = new SimpleASTNode(astNodeType_1.ASTNodeType.Multiplicative, token.getText() || '*');
+                var child2 = primary(tokens);
+                if (child2 !== null) {
+                    node.children.push(child1);
+                    node.children.push(child2);
+                    child1 = node;
+                }
+                else {
+                    throw new Error('invalid multiplicative expression, expecting the right part.');
+                }
             }
             else {
-                throw new Error('invalid multiplicative expression, expecting the right part.');
+                break;
             }
         }
     }
@@ -285,4 +377,4 @@ function printAst(node, ident) {
     }
 }
 // evaluateAll('2 + 3 * 5');
-evaluateAll('2 + 3 + 5');
+evaluateAll('int a = 2 + 3 + 5;');
